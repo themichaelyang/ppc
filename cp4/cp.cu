@@ -22,8 +22,8 @@ static inline int divup(int a, int b) {
 /* } */
 
 __global__ void correlation_kernel(float *result, const float *data, int row_width, int rows);
-__device__ double get_data(int x, int y, const float *data, int nx);
-__device__ double get_deno_term(int n, double sq_sum, double sum);
+__device__ float get_data(int x, int y, const float *data, int nx);
+__device__ float get_deno_term(int n, float sq_sum, float sum);
 
 /*
 This is the function you need to implement. Quick reference:
@@ -43,7 +43,6 @@ void correlate(int rows, int row_width, const float *data, float *result) {
   CHECK(cudaMemcpy(data_GPU, data, rows * row_width * sizeof(float), cudaMemcpyHostToDevice));
 
   // Run kernel
-  // block x, thread x
   correlation_kernel<<<rows, rows>>>(result_GPU, data_GPU, row_width, rows);
   CHECK(cudaGetLastError());
 
@@ -87,11 +86,11 @@ __global__ void correlation_kernel(float *result, const float *data, int row_wid
   result[row_i + row_j*rows] = numerator / (deno_row_i_term * deno_row_j_term);
 }
 
-__device__ double get_data(int x, int y, const float *data, int nx) {
+__device__ float get_data(int x, int y, const float *data, int nx) {
   return data[x + y*nx];
 }
 
-__device__ double get_deno_term(int n, double sq_sum, double sum) {
-  double sum_squared = sum * sum;
-  return std::sqrt((n * sq_sum) - sum_squared);
+__device__ float get_deno_term(int n, float sq_sum, float sum) {
+  float sum_squared = sum * sum;
+  return sqrtf((n * sq_sum) - sum_squared);
 }
