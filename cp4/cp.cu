@@ -90,6 +90,7 @@ __device__ float get_data(int x, int y, const float *data, int nx) {
   return data[x + y*nx];
 }
 
+// this is numerically unstable. fix to the norm way
 __device__ float get_deno_term(int n, float sq_sum, float sum) {
   float sum_squared = sum * sum;
   return sqrtf((n * sq_sum) - sum_squared);
