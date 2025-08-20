@@ -1,3 +1,4 @@
+/* Last submission: 15s, 2/5 */
 #include <cmath>
 
 float correlation(int row_i, int row_j, const float *data, int row_width);
