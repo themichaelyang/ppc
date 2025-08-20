@@ -1,4 +1,9 @@
 #include <cmath>
+
+float correlation(int row_i, int row_j, const float *data, int row_width);
+float get_data(int x, int y, const float *data, int nx);
+float get_deno_term(int n, float sq_sum, float sum);
+
 /*
 This is the function you need to implement. Quick reference:
 - input rows: 0 <= y < ny
