@@ -36,7 +36,7 @@ float correlation(int row_i, int row_j, const float *data, int row_width) {
   float row_i_sq_sum = 0;
   float row_j_sq_sum = 0;
 
-  for (int col=0; col < n; col++) {
+  for (int col=0; col < row_width; col++) {
     float row_i_col = get_data(col, row_i, data, row_width);
     float row_j_col = get_data(col, row_j, data, row_width);
 
@@ -49,7 +49,7 @@ float correlation(int row_i, int row_j, const float *data, int row_width) {
     row_j_sq_sum += row_j_col * row_j_col;
   }
 
-  float numerator = (n * row_dot) - (row_i_sum * row_j_sum);
+  float numerator = (row_width * row_dot) - (row_i_sum * row_j_sum);
   float deno_row_i_term = get_deno_term(row_width, row_i_sq_sum, row_i_sum);
   float deno_row_j_term = get_deno_term(row_width, row_j_sq_sum, row_j_sum);
 
