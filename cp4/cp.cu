@@ -39,7 +39,7 @@ void correlate(int rows, int row_width, const float *data, float *result) {
   float* result_GPU = NULL;
 
   CHECK(cudaMalloc((void**)&data_GPU, rows * row_width * sizeof(float)));
-  CHECK(cudaMalloc((void**)&result_GPU, rows * row_width * sizeof(float)));
+  CHECK(cudaMalloc((void**)&result_GPU, rows * rows * sizeof(float)));
   CHECK(cudaMemcpy(data_GPU, data, rows * row_width * sizeof(float), cudaMemcpyHostToDevice));
 
   // Run kernel
@@ -48,7 +48,7 @@ void correlate(int rows, int row_width, const float *data, float *result) {
   CHECK(cudaGetLastError());
 
   // Copy data back to CPU & release memory
-  CHECK(cudaMemcpy(result, result_GPU, rows * row_width * sizeof(float), cudaMemcpyDeviceToHost));
+  CHECK(cudaMemcpy(result, result_GPU, rows * rows * sizeof(float), cudaMemcpyDeviceToHost));
   CHECK(cudaFree(data_GPU));
   CHECK(cudaFree(result_GPU));
 }
