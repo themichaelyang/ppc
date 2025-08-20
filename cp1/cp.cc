@@ -17,8 +17,8 @@ void correlate(int ny, int nx, const float *data, float *result) {
   int rows = ny;
   int row_width = nx;
 
-  for (int i=0; i < rows; i++) {
-    for (int j=0; j < rows; j++) {
+  for (int j=0; j < rows; j++) {
+    for (int i=j; i < rows; i++) {
       result[i + j*rows] = correlation(i, j, data, row_width);
     }
   }
