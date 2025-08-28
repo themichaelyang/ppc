@@ -37,8 +37,8 @@ static inline int divup(int a, int b) {
 /* } */
 
 __global__ void correlation_kernel(float *result, const float *data, int row_width, int rows);
-__device__ float get_data(int x, int y, const float *data, int nx);
-__device__ float get_deno_term(int n, float sq_sum, float sum);
+__host__ __device__ float get_data(int x, int y, const float *data, int nx);
+__host__ __device__ int get_index(int x, int y, int nx);
 
 /*
 This is the function you need to implement. Quick reference:
@@ -65,17 +65,17 @@ void correlate(int ny, int nx, const float *data, float *result) {
     }
     double mean = sum / row_width;
 
-    // zero the mean
     float squared_sum = 0;
+    // zero the mean
     for (int element=0; element < row_width; element++) {
       double zero_meaned = get_data(element, row, data, row_width) - mean;
-      normalized[row][element] = zero_meaned;
-      squared_sum = zero_meaned * zero_meaned;
+      normalized[get_index(element, row, row_width)] = zero_meaned;
+      squared_sum += (zero_meaned * zero_meaned);
     }
 
     squared_sum = std::sqrt(squared_sum);
     for (int element=0; element < row_width; element++) {
-      normalized[row][element] /= squared_sum;
+      normalized[get_index(element, row, row_width)] /= squared_sum;
     }
   }
 
@@ -107,18 +107,16 @@ __global__ void correlation_kernel(float *result, const float *data, int row_wid
 
   float correlation = 0;
   for (int element=0; element < row_width; element++) {
-    correlation += get_data(element, row_i, data, row_width) * get_data(element, row_j, data, row_width)
+    correlation += (get_data(element, row_i, data, row_width) * get_data(element, row_j, data, row_width));
   }
 
-  result[row_i + row_j*rows] = correlation;
+  result[get_index(row_i, row_j, row_width)] = correlation;
 }
 
-__device__ float get_data(int x, int y, const float *data, int nx) {
+__host__ __device__ float get_data(int x, int y, const float *data, int nx) {
   return data[x + y*nx];
 }
 
-// this is numerically unstable. fix to the norm way
-__device__ float get_deno_term(int n, float sq_sum, float sum) {
-  float sum_squared = sum * sum;
-  return sqrtf((n * sq_sum) - sum_squared);
+__host__ __device__ int get_index(int x, int y, int nx) {
+  return x + y*nx;
 }
