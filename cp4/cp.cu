@@ -48,6 +48,8 @@ This is the function you need to implement. Quick reference:
 - correlation between rows i and row j has to be stored in result[i + j*ny]
 - only parts with 0 <= j <= i < ny need to be filled
 */
+
+// TODO: look into Godbolt
 void correlate(int ny, int nx, const float *data, float *result) {
   int rows = ny;
   int row_width = nx;
@@ -59,14 +61,14 @@ void correlate(int ny, int nx, const float *data, float *result) {
 
     // get the mean
     for (int element=0; element < row_width; element++) {
-      sum += data[row][element];
+      sum += get_data(element, row, data, row_width);
     }
     double mean = sum / row_width;
 
     // zero the mean
     float squared_sum = 0;
     for (int element=0; element < row_width; element++) {
-      double zero_meaned = data[row][element] - mean;
+      double zero_meaned = get_data(element, row, data, row_width) - mean;
       normalized[row][element] = zero_meaned;
       squared_sum = zero_meaned * zero_meaned;
     }
@@ -96,37 +98,19 @@ void correlate(int ny, int nx, const float *data, float *result) {
 }
 
 __global__ void correlation_kernel(float *result, const float *data, int row_width, int rows) {
+  // TODO: figure out how to size blocks and threads
   int row_i = blockIdx.x;
   int row_j = threadIdx.x;
 
   if (row_i >= rows || row_j >= rows || row_i < row_j)
     return;
 
-  float row_dot = 0;
-  float row_i_sum = 0;
-  float row_j_sum = 0;
-
-  float row_i_sq_sum = 0;
-  float row_j_sq_sum = 0;
-
-  for (int col=0; col < row_width; col++) {
-    float row_i_col = get_data(col, row_i, data, row_width);
-    float row_j_col = get_data(col, row_j, data, row_width);
-
-    row_dot += row_i_col * row_j_col;
-
-    row_i_sum += row_i_col;
-    row_j_sum += row_j_col;
-
-    row_i_sq_sum += row_i_col * row_i_col;
-    row_j_sq_sum += row_j_col * row_j_col;
+  float correlation = 0;
+  for (int element=0; element < row_width; element++) {
+    correlation += get_data(element, row_i, data, row_width) * get_data(element, row_j, data, row_width)
   }
 
-  float numerator = (row_width * row_dot) - (row_i_sum * row_j_sum);
-  float deno_row_i_term = get_deno_term(row_width, row_i_sq_sum, row_i_sum);
-  float deno_row_j_term = get_deno_term(row_width, row_j_sq_sum, row_j_sum);
-
-  result[row_i + row_j*rows] = numerator / (deno_row_i_term * deno_row_j_term);
+  result[row_i + row_j*rows] = correlation;
 }
 
 __device__ float get_data(int x, int y, const float *data, int nx) {
