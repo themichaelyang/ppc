@@ -54,7 +54,9 @@ void correlate(int ny, int nx, const float *data, float *result) {
   int rows = ny;
   int row_width = nx;
 
-  double *normalized = (double *)malloc(nx * ny * sizeof(double));
+  // float, to match the size and data expected by GPU. 
+  // calloc instead of malloc to initialize memory to pass compute-sanitizer.
+  float *normalized = (float *)calloc(nx * ny, sizeof(float));
 
   for (int row=0; row < rows; row++) {
     float sum = 0;
@@ -85,7 +87,10 @@ void correlate(int ny, int nx, const float *data, float *result) {
 
   CHECK(cudaMalloc((void**)&data_GPU, rows * row_width * sizeof(float)));
   CHECK(cudaMalloc((void**)&result_GPU, rows * rows * sizeof(float)));
-  CHECK(cudaMemcpy(data_GPU, data, rows * row_width * sizeof(float), cudaMemcpyHostToDevice));
+
+  // Need to initialize memory to avoid angering compute-sanitizer
+  CHECK(cudaMemset(result_GPU, 0, ny * ny * sizeof(float)));
+  CHECK(cudaMemcpy(data_GPU, normalized, rows * row_width * sizeof(float), cudaMemcpyHostToDevice));
 
   // Run kernel
   correlation_kernel<<<rows, rows>>>(result_GPU, data_GPU, row_width, rows);
@@ -95,9 +100,11 @@ void correlate(int ny, int nx, const float *data, float *result) {
   CHECK(cudaMemcpy(result, result_GPU, rows * rows * sizeof(float), cudaMemcpyDeviceToHost));
   CHECK(cudaFree(data_GPU));
   CHECK(cudaFree(result_GPU));
+
+  free(normalized);
 }
 
-__global__ void correlation_kernel(float *result, const float *data, int row_width, int rows) {
+__global__ void correlation_kernel(float *result, const float *normalized_data, int row_width, int rows) {
   // TODO: figure out how to size blocks and threads
   int row_i = blockIdx.x;
   int row_j = threadIdx.x;
@@ -107,10 +114,11 @@ __global__ void correlation_kernel(float *result, const float *data, int row_wid
 
   float correlation = 0;
   for (int element=0; element < row_width; element++) {
-    correlation += (get_data(element, row_i, data, row_width) * get_data(element, row_j, data, row_width));
+    correlation += (get_data(element, row_i, normalized_data, row_width) * get_data(element, row_j, normalized_data, row_width));
   }
 
-  result[get_index(row_i, row_j, row_width)] = correlation;
+  // result is sized row x row, since row-wise correlations
+  result[get_index(row_i, row_j, rows)] = correlation;
 }
 
 __host__ __device__ float get_data(int x, int y, const float *data, int nx) {
