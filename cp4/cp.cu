@@ -93,7 +93,10 @@ void correlate(int ny, int nx, const float *data, float *result) {
   CHECK(cudaMemcpy(data_GPU, normalized, rows * row_width * sizeof(float), cudaMemcpyHostToDevice));
 
   // Run kernel
-  correlation_kernel<<<rows, rows>>>(result_GPU, data_GPU, row_width, rows);
+  dim3 dimBlock(16, 16); // dimensions of a block
+  dim3 dimGrid(divup(ny, dimBlock.x), divup(ny, dimBlock.y));
+
+  correlation_kernel<<<dimGrid, dimBlock>>>(result_GPU, data_GPU, row_width, rows);
   CHECK(cudaGetLastError());
 
   // Copy data back to CPU & release memory
@@ -105,9 +108,8 @@ void correlate(int ny, int nx, const float *data, float *result) {
 }
 
 __global__ void correlation_kernel(float *result, const float *normalized_data, int row_width, int rows) {
-  // TODO: figure out how to size blocks and threads
-  int row_i = blockIdx.x;
-  int row_j = threadIdx.x;
+  int row_i = threadIdx.x + blockIdx.x * blockDim.x;
+  int row_j = threadIdx.y + blockIdx.y * blockDim.y;
 
   if (row_i >= rows || row_j >= rows || row_i < row_j)
     return;
