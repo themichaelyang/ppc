@@ -18,9 +18,11 @@ Result calculate(int ny, int nx, const float *data, int y0, int x0, int y1, int 
   int size = (x1 - x0) * (y1 - y0);
 
   for (int x = x0; x < x1; x++) {
+    int row_offset = 3*x;
     for (int y = y0; y < y1; y++) {
+      int column_offset = 3*nx*y;
       for (int c = 0; c < 3; c++) {
-        totals[c] += data[c + 3*x + 3*nx*y];
+        totals[c] += data[c + row_offset + column_offset];
       }
     }
   }
