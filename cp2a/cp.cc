@@ -40,7 +40,7 @@ void correlate(int ny, int nx, const float *data, float *result) {
 
   // make row width divisible by # parallel instructions wanted, reduce branching in inner loop
   if (row_width % parallel_instr != 0) {
-    normalized_row_width = row_width + row_width % parallel_instr;
+    normalized_row_width = row_width + (parallel_instr - row_width % parallel_instr);
   }
 
   double* normalized = (double*) calloc(normalized_row_width * ny, sizeof(double));
@@ -76,17 +76,21 @@ void correlate(int ny, int nx, const float *data, float *result) {
     for (int row_i=row_j; row_i < rows; row_i++) {
       double correlation = 0;
       asm("# inner loop start");
+      for (int offset=0; offset < parallel_instr; offset++) {
+        partials[offset] = 0;
+      }
+
       // parallelize instructions by reducing data dependencies
       for (int s=0; s < normalized_row_width / parallel_instr; s++) {
         for (int offset=0; offset < parallel_instr; offset++) {
-          partials[offset] = correlate_x(s * parallel_instr + offset, row_i, row_j, normalized, normalized_row_width);
+          partials[offset] += correlate_x(s * parallel_instr + offset, row_i, row_j, normalized, normalized_row_width);
         }
       }
 
       for (int offset=0; offset < parallel_instr; offset++) {
         correlation += partials[offset];
       }
-        result[get_index(row_i, row_j, rows)] = correlation;
+      result[get_index(row_i, row_j, rows)] = correlation;
       asm("# inner loop end");
     }
   }
