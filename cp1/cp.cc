@@ -28,6 +28,10 @@ void correlate(int ny, int nx, const float *data, float *result) {
  *
  * Note that Wikipedia uses x and y as the two samples, whereas x and y in our
  * code relates to the row/col coordinates. Our samples are the rows.
+ *
+ * I used a different approach for other parts, because...
+ * "This formula suggests a convenient single-pass algorithm for calculating sample correlations, though depending on the numbers involved, it can sometimes be numerically unstable."
+ *
  * */
 float correlation(int row_i, int row_j, const float *data, int row_width) {
   double row_dot = 0;
