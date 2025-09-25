@@ -46,21 +46,38 @@ void correlate(int ny, int nx, const float *data, float *result) {
   double* normalized = (double*) calloc(normalized_row_width * ny, sizeof(double));
 
   for (int row=0; row < rows; row++) {
-    double sum = 0;
+    double sum_even = 0;
+    double sum_odd = 0;
 
     // get the mean
-    for (int element=0; element < row_width; element++) {
-      sum += get_data(element, row, data, row_width);
+    for (int s=0; s < row_width / 2; s++) {
+      sum_even += get_data(s * 2, row, data, row_width);
+      sum_odd += get_data(s * 2 + 1, row, data, row_width);
     }
-    double mean = sum / row_width;
+    if (row_width % 2 == 1) {
+      sum_even += get_data(row_width - 1, row, data, row_width);
+    }
+
+    double mean = (sum_even + sum_odd) / row_width;
 
     // zero the mean, calculate squared sum
-    double squared_sum = 0;
-    for (int element=0; element < row_width; element++) {
-      double zero_meaned = get_data(element, row, data, row_width) - mean;
-      normalized[get_index(element, row, normalized_row_width)] = zero_meaned;
-      squared_sum += (zero_meaned * zero_meaned);
+    double squared_sum_odd = 0;
+    double squared_sum_even = 0;
+    for (int s=0; s < row_width / 2; s++) {
+      double zero_meaned_even = get_data(s * 2, row, data, row_width) - mean;
+      double zero_meaned_odd = get_data(s * 2 + 1, row, data, row_width) - mean;
+
+      normalized[get_index(s * 2, row, normalized_row_width)] = zero_meaned_even;
+      normalized[get_index(s * 2 + 1, row, normalized_row_width)] = zero_meaned_odd;
+      squared_sum_even += (zero_meaned_even * zero_meaned_even);
+      squared_sum_odd += (zero_meaned_odd * zero_meaned_odd);
     }
+    if (row_width % 2 == 1) {
+      double zero_meaned_even = get_data(row_width - 1, row, data, row_width) - mean;
+      normalized[get_index(row_width - 1, row, normalized_row_width)] = zero_meaned_even;
+      squared_sum_even += (zero_meaned_even * zero_meaned_even);
+    }
+    double squared_sum = squared_sum_even + squared_sum_odd;
 
     // one the row magnitude
     double magnitude = std::sqrt(squared_sum);
