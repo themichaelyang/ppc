@@ -34,14 +34,8 @@ This is the function you need to implement. Quick reference:
 void correlate(int ny, int nx, const float *data, float *result) {
   int rows = ny;
   int row_width = nx;
-  int even_row_width = row_width;
 
-  // make row width even, reduce branching in inner loop
-  if (row_width % 2 == 1) {
-    even_row_width = row_width + 1;
-  }
-
-  double * normalized = (double*) calloc(even_row_width * ny, sizeof(double));
+  double * normalized = (double*) calloc(nx * ny, sizeof(double));
 
   for (int row=0; row < rows; row++) {
     double sum = 0;
@@ -56,30 +50,25 @@ void correlate(int ny, int nx, const float *data, float *result) {
     double squared_sum = 0;
     for (int element=0; element < row_width; element++) {
       double zero_meaned = get_data(element, row, data, row_width) - mean;
-      normalized[get_index(element, row, even_row_width)] = zero_meaned;
+      normalized[get_index(element, row, row_width)] = zero_meaned;
       squared_sum += (zero_meaned * zero_meaned);
     }
 
     // one the row magnitude
     double magnitude = std::sqrt(squared_sum);
     for (int element=0; element < row_width; element++) {
-      normalized[get_index(element, row, even_row_width)] /= magnitude;
+      normalized[get_index(element, row, row_width)] /= magnitude;
     }
   }
 
   // only populate upper triangle
   for (int row_j=0; row_j < rows; row_j++) {
     for (int row_i=row_j; row_i < rows; row_i++) {
-      double correlation_even = 0;
-      double correlation_odd = 0;
-      asm("# inner loop start");
-      // parallelize instructions by reducing data dependencies
-      for (int s=0; s < even_row_width / 2; s++) {
-        correlation_even += correlate_x(s * 2 + 1, row_i, row_j, normalized, even_row_width);
-        correlation_odd += correlate_x(s * 2, row_i, row_j, normalized, even_row_width);
+      double correlation = 0;
+      for (int x=0; x < row_width; x++) {
+        correlation += correlate_x(x, row_i, row_j, normalized, row_width);
       }
-      result[get_index(row_i, row_j, rows)] = correlation_even + correlation_odd;
-      asm("# inner loop end");
+      result[get_index(row_i, row_j, rows)] = correlation;
     }
   }
 
