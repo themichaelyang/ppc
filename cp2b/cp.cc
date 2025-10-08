@@ -37,7 +37,7 @@ void correlate(int ny, int nx, const float *data, float *result) {
 
   double * normalized = (double*) calloc(nx * ny, sizeof(double));
 
-  #pragma omp parallel for
+  #pragma omp parallel for schedule(dynamic, 1)
   for (int row=0; row < rows; row++) {
     double sum = 0;
 
@@ -63,7 +63,7 @@ void correlate(int ny, int nx, const float *data, float *result) {
   }
 
   // only populate upper triangle
-  #pragma omp parallel for schedule(dynamic,1)
+  #pragma omp parallel for schedule(dynamic, 1)
   for (int row_j=0; row_j < rows; row_j++) {
     for (int row_i=row_j; row_i < rows; row_i++) {
       double correlation = 0;
