@@ -162,5 +162,10 @@ Result segment(int ny, int nx, const float *data) {
     }
   }
 
+  // appease address sanitizer
+  free(pv->areas);
+  free(pv->component_squared_areas);
+  free(pv);
+
   return result;
 }
